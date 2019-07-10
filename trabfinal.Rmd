@@ -1,0 +1,69 @@
+---
+title: "Trabalho Final - KDD CUP 2009"
+author: "Jonatas Varella"
+date: "7/7/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyr)
+library(tidyselect)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(descr)
+library(readr)
+library(texreg)
+library(data.table)
+```
+
+```{r bd}
+## Abrindo os bancos de dados
+bd = read.table("orange_small_train.data",header=T,sep='\t',na.strings=c('NA',''), stringsAsFactors=FALSE)
+bd1 = read.table("http://www.vincentlemaire-labs.fr/kddcup2009/orange_small_train_upselling.labels")
+bd$upselling = bd1$V1
+
+
+```
+
+```{r tratando o bd}
+# Common NAs:
+na = c(
+  '',
+  'na', 'n.a', 'n.a.',
+  'nan', 'n.a.n', 'n.a.n.',
+  'NA', 'N.A', 'N.A.',
+  'NaN', 'N.a.N', 'N.a.N.',
+  'NAN', 'N.A.N', 'N.A.N.',
+  'nil', 'Nil', 'NIL',
+  'null', 'Null', 'NULL')
+
+features = ncol(bd)
+feature_names = names(bd)
+samples = nrow(bd)
+upselling =  bd1$V1
+upselling = upselling %>% factor(levels = c(-1,1), labels = c("Não", "Sim"))
+```
+
+```{r splitbd}
+## Dividindo o bd
+train = sample(1:nrow(bd),nrow(bd) * 0.7)
+y = bd$upselling[train]
+bd_train = bd[train, ]
+train_samples <- length(y)
+
+
+```
+
+```{r limpandobd}
+sapply(bd, function(x) sum(is.na(x)))
+na_prop = (sapply(bd_train, function(col) sum(is.na(col))) / nrow(bd_train)) * 100
+hist(na_prop)
+feature_names = feature_names[na_prop <= .2]
+bd_train <- bd_train[, feature_names]
+```
+
+
+
+
