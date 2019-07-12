@@ -16,6 +16,7 @@ library(descr)
 library(readr)
 library(texreg)
 library(data.table)
+library(leaps)
 ```
 
 ```{r bd}
@@ -23,7 +24,6 @@ library(data.table)
 bd = read.table("orange_small_train.data",header=T,sep='\t',na.strings=c('NA',''), stringsAsFactors=FALSE)
 bd1 = read.table("http://www.vincentlemaire-labs.fr/kddcup2009/orange_small_train_upselling.labels")
 bd$upselling = bd1$V1
-
 
 ```
 
@@ -42,27 +42,80 @@ na = c(
 features = ncol(bd)
 feature_names = names(bd)
 samples = nrow(bd)
-upselling =  bd1$V1
-upselling = upselling %>% factor(levels = c(-1,1), labels = c("Não", "Sim"))
-```
-
-```{r splitbd}
-## Dividindo o bd
-train = sample(1:nrow(bd),nrow(bd) * 0.7)
-y = bd$upselling[train]
-bd_train = bd[train, ]
-train_samples <- length(y)
-
+#upselling =  bd1$V1
+#upselling = upselling %>% factor(levels = c(-1,1), labels = c("Não", "Sim"))
+bd$upselling =  factor(bd$upselling, levels = c(-1,1), labels = c("Não", "Sim"))
 
 ```
+
+```{r funcao}
+qfreq = function(x) {
+  return(descr::freq(x, plot = F))
+}
+
+```
+
+
 
 ```{r limpandobd}
+#Verificando a classes das variáveis
+sapply(bd, class)
+
+## Contando os NA`S
 sapply(bd, function(x) sum(is.na(x)))
-na_prop = (sapply(bd_train, function(col) sum(is.na(col))) / nrow(bd_train)) * 100
+
+## Salvando as proporções de NA`s
+na_prop = (sapply(bd, function(col) sum(is.na(col))) / nrow(bd)) * 100
 hist(na_prop)
+
+#Definindo proporção de NA aceitável: Menor ou igual a 20%
+
 feature_names = feature_names[na_prop <= .2]
-bd_train <- bd_train[, feature_names]
+
+## Deixando o banco de dados apenas as colunas com menos de 20% de NA 
+bd_trab = bd[, feature_names]
+
+## Verificando as classes das variáveis restantes
+sapply(bd_trab, class)
+head(freq(bd_trab$Var57, plot = F))
+head(freq(bd_trab$Var73, plot = F))
+head(freq(bd_trab$Var113, plot = F))
+
+## Removendo as três variáveis acima. Percentuais todos abaixo de 3%
+bd_trab = bd_trab %>% select(-c(Var57, Var73, Var113))
+
 ```
+
+
+```{r categoricas, echo=FALSE}
+## Verificando as variáveis catégoricas
+sapply(bd_trab[1:19], freq)
+bd_trab = bd_trab[-c(1:2,4:7,11:13,15)]
+
+sapply(bd_trab, class)
+bd_trab$upselling = as.character(bd$upselling)
+qfreq(bd_trab$upselling)
+```
+
+```{r investigando}
+# Verificando o banco de dados
+# Verificando os NAs
+(sapply(bd_trab, function(col) sum(is.na(col))) / nrow(bd_trab)) * 100
+
+# summary(bd_trab)
+# reg1 = lm(upselling ~ ., data = bd_trab, na.action = T)
+# # Forward and Backward Stepwise Selection
+# regfit.fwd=regsubsets(upselling ~.,data=bd_trab, nvmax=10 ,method="forward")
+# summary(regfit.fwd)
+```
+
+
+
+
+
+
+
+
 
 
 
